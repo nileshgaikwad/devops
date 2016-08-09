@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="DrupalDeploy" default="info" basedir=".">
+  <!-- Include antcontrib xml. -->
+  <taskdef resource="net/sf/antcontrib/antlib.xml"/>
+  <!-- Include property files - the order is IMPORTANT! -->
+  <!-- Include user specific properties. -->
+  <property file="${user.home}/${Site}.properties"/>
+  <!-- Include the appropriate site files. -->
+  <property file="${basedir}/config/sites/${Site}.properties"/>
+  <!-- Include the appropriate environment properties files. -->
+  <property file="${basedir}/config/environments/${Environment}.properties"/>
+  <!-- Include global properties. -->
+  <property file="${basedir}/config/global.properties"/>
+
+  <!-- Core tasks. -->
+
+  <!-- Displays various information about this server and the site installation. -->
+  <target name="info" description="Provides some output about this build and environment.">
+    <echo message="Using:" level="info"/>
+    <echo message="${os.name} ${os.version}" level="info"/>
+    <echo message="${ant.version}" level="info"/>
+    <echo message="${ant.file} = ${ant.project.name}" level="info"/>
+    <echo message="User = ${user.name}:${user.home}" level="info"/>
+    <echo message="BUILD_ID = ${BUILD_ID}" level="info"/>
+    <echo message="WORKSPACE = ${WORKSPACE}" level="info"/>
+    <echo message="Site = ${Site}" level="info"/>
+    <echo message="ENVIRONMENT = ${Environment}" level="info"/>
+    <echo message="TAG = ${Tag}" level="info"/>
+    <!-- Creates a build info file. -->
+    <propertyfile file="${build.info}" comment="Build Information File - DO NOT ALTER.">
+      <entry key="build.id" value="${BUILD_ID}"/>
+      <entry key="build.number" type="int" default="0000" operation="+" pattern="0000"/>
+      <entry key="build.date" type="date" value="now" pattern="dd.MM.yyyy HH:mm"/>
+    </propertyfile>
+  </target>
+
+  <!-- Initial deployment task to build the site and push it to a specified server. -->
+  <target name="initial-deploy" depends="info" description="Initial build and deployment.">
+    <echoproperties/>
+    <antcall target="create-build-dir"/>
+  </target>
+
+  <!-- Deployment task to build the site and push it to a specified server. -->
+  <target name="deploy" depends="info" description="Regular build and deployment.">
+    <echo message="Beginning deployment tasks..."/>
+    <antcall target="phplint"/>
+    <antcall target="create-build-dir"/>
+    <antcall target="copy-files-to-build-dir"/>
+    <antcall target="create-settings-php"/>
+    <antcall target="copy-ping-php"/>
+    <antcall target="create-version-file"/>
+    <antcall target="keep-set-amount-builds"/>
+    <antcall target="transfer-build"/>
+    <antcall target="create-files-dir-symlink"/>
+    <antcall target="set-permissions"/>
+    <antcall target="create-current-symlink"/>
+    <antcall target="drush-cache-clear"/>
+    <antcall target="drush-update-database"/>
+    <antcall target="drush-schema-compare"/>
+    <antcall target="drush-features-revert"/>
+    <antcall target="drush-simpletest-run"/>
+    <antcall target="drush-status"/>
+  </target>
+
+  <!-- Cleans the build directory. -->
+  <target name="clean-build-dir" description="Cleans the build directory.">
+    <echo message="Cleaning build directory."/>
+    <delete dir="${WORKSPACE}/build"/>
+  </target>
+
+  <!-- Creates the build directory. -->
+  <target name="create-build-dir" depends="clean-build-dir" description="Creates the build directory.">
+    <echo message="Creating build directory."/>
+    <mkdir dir="${WORKSPACE}/build"/>
+  </target>
+
+  <!-- Copies the cloned files to the build directory. -->
+  <target name="copy-files-to-build-dir" description="Copies the cloned files to the build directory.">
+    <echo message="Copying files to build directory."/>
+    <copy todir="${WORKSPACE}/build">
+      <fileset dir="${WORKSPACE}/vendor/drupal-${drupal.version}"/>
+    </copy>
+  </target>
+
+  <!-- Creates a settings.php file. -->
+  <target name="create-settings-php" description="Creates a settings.php file in the correct place within Drupal for the current site.">
+    <echo message="Creating settings.php file."/>
+    <copy file="${basedir}/files/drupal-${drupal.version}.settings.php" tofile="${WORKSPACE}/build/sites/${site.folder}/settings.php" overwrite="true">
+      <filterchain>
+        <replacetokens>
+          <token key="DATABASE_DRIVER" value="mysql"/>
+          <token key="DATABASE_NAME" value="${mysql.dbname}"/>
+          <token key="DATABASE_USER" value="${mysql.user}"/>
+          <token key="DATABASE_PASSWORD" value="${mysql.pass}"/>
+          <token key="DATABASE_HOST" value="${mysql.host}"/>
+          <token key="DATABASE_PREFIX" value="${mysql.prefix}"/>
+          <token key="DRUPAL_SALT" value="${drupal.salt}"/>
+          <token key="DRUPAL_VARNISH_CONTROL_KEY" value="${drupal.varnish.control.key}"/>
+          <token key="DRUPAL_VARNISH_CONTROL_TERMINAL" value="${drupal.varnish.control.terminal}"/>
+          <token key="DRUPAL_MEMCACHE_PREFIX" value="${drupal.memcache.key}"/>
+          <token key="ENVIRONMENT" value="${Environment}"/>
+        </replacetokens>
+      </filterchain>
+    </copy>
+  </target>
+
+  <!-- Creates a ping.php file used for Varnish to establish site health. -->
+  <target name="copy-ping-php" description="Creates a ping.php file in the Drupal webroot for use with Varnish.">
+    <echo message="Creating settings.php file."/>
+    <copy file="${basedir}/files/drupal-${drupal.version}.ping.php" tofile="${WORKSPACE}/build/ping.php" overwrite="true"/>
+  </target>
+
+  <!-- Creates a file containing the current version information. -->
+  <target name="create-version-file" description="Places a text file containing version information in the site folder.">
+    <echo message="Creating VERSION file."/>
+    <touch file="${WORKSPACE}/build/sites/${site.folder}/VERSION.txt"/>
+    <echo file="${WORKSPACE}/build/sites/${site.folder}/VERSION.txt" append="false">${Tag}</echo>
+  </target>
+
+  <!-- Maintains a set number of builds to keep. -->
+  <target name="keep-set-amount-builds" description="Maintains a set number of builds to keep.">
+    <echo message="Ensuring there are only five build directories."/>
+    <ssh command="cd ${web.root}; ls -t1 --ignore current| tail -n +5| xargs rm -rf"/>
+  </target>
+
+  <!-- Transfers the build to the specified environment. -->
+  <target name="transfer-build" description="SCPs the build to the remote hosting server.">
+    <scp remoteTodir="${ssh.user}@${host.ip}:${web.root}/${BUILD_ID}" trust="${ssh.trust}" sftp="true" keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}">
+      <fileset dir="${WORKSPACE}/build">
+        <include name="**/*"/>
+      </fileset>
+    </scp>
+  </target>
+
+  <!-- Creates the remote files directory symlink. -->
+  <target name="create-files-dir-symlink" description="Creates a files directory symlink on the remote server.">
+    <echo message="Creating files directory symlink."/>
+    <ssh command="ln -s ${files.root} ${web.root}/${BUILD_ID}/sites/${site.folder}/files"/>
+  </target>
+
+  <!-- Sets file/ directory permissions. -->
+  <target name="set-permissions" description="Ensures certain files and folders have correct permissions.">
+    <echo message="Setting permissions."/>
+    <ssh command="chmod a-r ${web.root}/${BUILD_ID}/CHANGELOG.txt"/>
+    <ssh command="chmod go-w ${web.root}/${BUILD_ID}/sites/${site.folder}"/>
+    <ssh command="chmod go-w ${web.root}/${BUILD_ID}/sites/${site.folder}/settings.php"/>
+    <ssh command="chmod a+rwx ${web.root}/${BUILD_ID}/sites/${site.folder}/files"/>
+  </target>
+
+  <!-- Refreshes the 'current' symlink. -->
+  <target name="create-current-symlink" description="Recreates the 'current' symlink folder pointing to the current build.">
+    <ssh command="rm ${web.root}/current; ln -s ${web.root}/${BUILD_ID} ${web.root}/current"/>
+  </target>
+
+  <!-- Unused. -->
+
+  <!-- Creates the files directory locally. -->
+  <target name="create-files-dir" description="Creates a files directory locally.">
+    <echo message="Creating files directory."/>
+    <mkdir dir="${WORKSPACE}/build/sites/${site.folder}/files"/>
+  </target>
+
+  <!-- Removes the webroot directory on the remote server. -->
+  <target name="clean-webroot" description="Removes the webroot directory.">
+    <ssh command="rm -rf ${web.root}; mkdir ${web.root}"/>
+  </target>
+
+  <!-- Lint commands. -->
+
+  <!-- Runs PHP lint against all files in the build. -->
+  <target name="phplint" description="Runs PHP Lint against everything except Drupal core files.">
+    <apply executable="php" failonerror="true">
+      <arg value="-l"/>
+      <fileset dir="${WORKSPACE}/build">
+        <modified />
+        <include name="**/*.engine"/>
+        <include name="**/*.inc"/>
+        <include name="**/*.info"/>
+        <include name="**/*.install"/>
+        <include name="**/*.module"/>
+        <include name="**/*.profile"/>
+        <include name="**/*.test"/>
+        <include name="**/*.php"/>
+        <include name="**/*.po"/>
+        <!-- Ignore Drupal core directories. -->
+        <exclude name="includes/**"/>
+        <exclude name="misc/**"/>
+        <exclude name="modules/**"/>
+        <exclude name="scripts/**"/>
+        <exclude name="themes/**"/>
+        <!-- These cause the build to fail as they redeclare functions like "example_perm()". -->
+        <exclude name="**/coder/coder_upgrade/tests/new/samples/example.module"/>
+        <exclude name="**/coder/coder_upgrade/tests/old/samples/example.module"/>
+      </fileset>
+    </apply>
+  </target>
+
+  <!-- Runs PHP Codesniffer to find coding standard violations. -->
+  <target name="phpcs" description="Find coding standard violations using PHP_CodeSniffer.">
+    <exec executable="phpcs" output="/dev/null">
+      <arg value="--report=checkstyle" />
+      <arg value="--report-file=${basedir}/build/logs/checkstyle.xml" />
+      <arg value="--standard=${basedir}/build/ruleset/phpcs.xml" />
+      <arg value="--ignore=${basedir}/vendor/*,${basedir}/app/*,${basedir}/web/*,*.js,*.css" />
+      <arg path="${basedir}" />
+    </exec>
+  </target>
+
+  <!-- Drush commands. -->
+
+  <!-- DRUSH task for clearing the caches for the installation. -->
+  <target name="drush-cache-clear" description="Clears all caches for the current site.">
+    <echo message="Clearing caches for: @${site.alias}."/>
+    <drush command="cache-clear all"/>
+  </target>
+
+  <!-- DRUSH task for comparing database tables to ensure correct running. -->
+  <target name="drush-schema-compare" description="Displays information about any differences between database tables and the codebase which created/ maintains them.">
+    <echo message="Comparing database schema for: @${site.alias}."/>
+    <drush command="en schema -y"/>
+    <drush command="schema-compare mismatch"/>
+    <drush command="schema-compare missing"/>
+    <drush command="schema-compare extra"/>
+    <drush command="dis schema -y"/>
+  </target>
+
+  <!-- DRUSH task for checking Drupal coding standards. -->
+  <target name="drush-coder" description="Runs a coding standards check against the codebase.">
+    <echo message="Running coding standards check for: @${site.alias}."/>
+    <drush command="en coder_review -y"/>
+    <drush command="coder --reviews=comment,release,security,sql,style --no-empty --minor --summary"/>
+    <drush command="dis coder -y"/>
+  </target>
+
+  <!-- DRUSH task for reverting Features. -->
+  <target name="drush-features-revert" description="Reverts site config to that which is stored in configuration management.">
+    <echo message="Reverting Features for: @${site.alias}."/>
+    <drush command="en features -y"/>
+    <drush command="features-revert-all --force -y"/>
+  </target>
+
+  <!-- DRUSH site installation. -->
+  <target name="drush-site-install" description="Full site installation step from scratch - USE WITH CAUTION.">
+    <echo message="Site install for @${site.alias}"/>
+    <drush command="site-install ${drupal.profile} --db-url=mysql://${mysql.user}:${mysql.pass}@${mysql.host}:${mysql.port}/${mysql.dbname} --account-pass=${site.pass} -y "/>
+  </target>
+
+  <!-- DRUSH task for running cron jobs. -->
+  <target name="drush-cron" description="Runs regular maintenance tasks.">
+    <echo message="Running cron for: @${site.alias}."/>
+    <drush command="cron"/>
+  </target>
+
+  <!-- DRUSH task for running update hooks for the installation. -->
+  <target name="drush-update-database" description="Updates the database with any new schema changes.">
+    <echo message="Running update hooks for: @${site.alias}."/>
+    <drush command="updatedb -y"/>
+  </target>
+
+  <!-- DRUSH task for running SimpleTests against the installation. -->
+  <target name="drush-simpletest-run" description="Runs unit/ integration tests for Drupal SimpleTest.">
+    <echo message="Running SimpleTests for: @${site.alias}."/>
+    <drush command="en simpletest -y"/>
+    <drush command="test-run --all"/>
+  </target>
+
+  <!-- DRUSH task for returning a status report for the installation. -->
+  <target name="drush-status" description="Displays a status report.">
+    <echo message="Status report for: @${site.alias}."/>
+    <drush command="status"/>
+  </target>
+
+  <!-- System commands. -->
+
+  <!-- DRUSH task for running update hooks for all installations. -->
+  <target name="drush-update-database-all" description="Updates the database with any new schema changes across all sites.">
+    <echo message="Running update database on all sites."/>
+    <drush-all command="updatedb -y"/>
+  </target>
+
+  <!-- DRUSH task for running cron jobs on all installations. -->
+  <target name="drush-cron-all" description="Runs regular maintenance tasks across all sites.">
+    <echo message="Running cron on all sites."/>
+    <drush-all command="cron"/>
+  </target>
+
+  <!-- System commands. -->
+
+  <!-- Restarts apache gracefully on the remote host box. -->
+  <target name="restart-apache" description="Executes a remote command to restart apache.">
+    <echo message="Restarting apache on @${host.ip}."/>
+    <ssh command="service httpd graceful"/>
+  </target>
+
+  <!-- Restarts memcache on the remote host box. -->
+  <target name="restart-memcache" description="Executes a remote command to restart memcache.">
+    <echo message="Restarting memcache on @${host.ip}."/>
+    <ssh command="service memcache restart"/>
+  </target>
+
+  <!-- Restarts apache gracefully on the remote host box. -->
+  <target name="restart-varnish" description="Executes a remote command to restart varnish.">
+    <echo message="Restarting varnish on @${host.ip}."/>
+    <ssh command="service varnish restart"/>
+  </target>
+
+  <!-- Macros. -->
+
+  <!-- Allows commands to be executed remotely. -->
+  <macrodef name="ssh">
+    <attribute name="command"/>
+    <attribute name="failonerror" default="true"/>
+    <sequential>
+      <sshexec host="${host.ip}" username="${ssh.user}" password="${ssh.password}" keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="${ssh.trust}" command="@{command}" failonerror="@{failonerror}"/>
+    </sequential>
+  </macrodef>
+
+  <!-- Allows Drush commands to be executed on all sites. -->
+  <macrodef name="drush-all">
+    <attribute name="command"/>
+    <attribute name="failonerror" default="true"/>
+    <sequential>
+      <var name="command" value="@{command}"/>
+      <var name="failonerror" value="@{failonerror}"/>
+      <foreach target="drush-all-action" param="file" inheritAll="true">
+        <path>
+          <fileset dir="${basedir}/config/sites">
+            <include name="*.properties"/>
+          </fileset>
+        </path>
+      </foreach>
+    </sequential>
+  </macrodef>
+
+  <!-- Helper target for drush-all. -->
+  <target name="drush-all-action" description="Helper target for drush-all, loads the property file and calls 'drush' macro.">
+    <property file="${file}"/>
+    <drush command="${command}" failonerror="${failonerror}"/>
+  </target>
+
+  <!-- Allows Drush commands to be executed remotely on a specified alias. -->
+  <macrodef name="drush-remote">
+    <attribute name="command"/>
+    <attribute name="failonerror" default="true"/>
+    <sequential>
+      <echo message="drush @${site.alias} @{command}"/>
+      <ssh command="sudo -u ${ssh.deploy_user} ${PHP} ${DRUSH} @${site.alias} @{command}" failonerror="@{failonerror}"/>
+    </sequential>
+  </macrodef>
+
+  <!-- Allows Drush commands to be executed locally on a specified alias. -->
+  <macrodef name="drush">
+    <attribute name="command"/>
+    <attribute name="failonerror" default="true"/>
+    <element name="args" optional="true"/>
+    <sequential>
+      <echo message="drush @${site.alias} @{command}"/>
+      <exec executable="${PHP}" failonerror="@{failonerror}">
+        <arg value="${DRUSH}"/>
+        <arg value="@${site.alias}"/>
+        <arg value="@{command}"/>
+        <args/>
+      </exec>
+    </sequential>
+  </macrodef>
+</project>
