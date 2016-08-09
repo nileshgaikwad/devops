@@ -10,11 +10,11 @@ function _custom_validation_validate($form, $form_state) {
   $mobilenumber = $form_state['values']['field_mobile_number']['und'][0]['value']; 
   //First name should not contain special characters
   if (!preg_match('/^[a-zA-Z]{3,15}$/', $firstname)) {
-    form_set_error('field_first_name', 'Please enter only characters for first name');
+    form_set_error('field_first_name', 'Please enter only characters for first name.');
   }
   //lastname should not contain special characters 
   if (!preg_match('/^[a-zA-Z]{3,15}$/', $lastname)) {
-    form_set_error('field_last_name', 'Please enter only characters for last name');
+    form_set_error('field_last_name', 'Please enter only characters for last name.');
   }
   //mobile number should be in at least 10 digit and should be numeric without special characters
   if (!preg_match('/^[0-9]{10}$/', $mobilenumber)) {
