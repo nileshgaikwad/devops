@@ -19,6 +19,6 @@ function _custom_validation_validate($form, $form_state) {
   //mobile number should be in at least 10 digit and should be numeric without special characters
   if (!preg_match('/^[0-9]{10}$/', $mobilenumber)) {
     form_set_error('field_mobile_number', 'Please enter valid mobile number. 
-    (Numeric and 10 digits accepted)');
+    (Numeric and 10 digits accepted.)');
   } 
 }
