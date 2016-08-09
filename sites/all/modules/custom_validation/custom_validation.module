@@ -8,6 +8,7 @@ function _custom_validation_validate($form, $form_state) {
   $firstname = $form_state['values']['field_first_name']['und'][0]['value'];
   $lastname  = $form_state['values']['field_last_name']['und'][0]['value'];
   $mobilenumber = $form_state['values']['field_mobile_number']['und'][0]['value']; 
+  
   //First name should not contain special characters
   if (!preg_match('/^[a-zA-Z]{3,15}$/', $firstname)) {
     form_set_error('field_first_name', 'Please enter only characters for first name.');
