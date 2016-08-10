@@ -1,5 +1,5 @@
-<xml version="1.0" encoding="UTF-8"?>
-<project name="DrupalDeploy" default="clean">
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="devops" default="clean">
  
  <target name="clean"
          unless="clean.done"
