@@ -311,7 +311,7 @@
     <attribute name="command"/>
     <attribute name="failonerror" default="true"/>
     <sequential>
-      <sshexec host="${host.ip}" username="${ssh.user}" password="${ssh.password}" keyfile="${ssh.keyfile}" passphrase="${ssh.passphrase}" trust="${ssh.trust}" command="@{command}" failonerror="@{failonerror}"/>
+      <sshexec host="${host.ip}" username="${ssh.user}" password="${ssh.password}" passphrase="${ssh.passphrase}" trust="${ssh.trust}" command="@{command}" failonerror="@{failonerror}"/>
     </sequential>
   </macrodef>
 
