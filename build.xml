@@ -50,6 +50,7 @@
     <antcall target="copy-ping-php"/>
     <antcall target="create-version-file"/>
     <antcall target="keep-set-amount-builds"/>
+g128
     <antcall target="transfer-build"/>
     <antcall target="create-files-dir-symlink"/>
     <antcall target="set-permissions"/>
