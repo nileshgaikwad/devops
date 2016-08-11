@@ -48,8 +48,8 @@
     <antcall target="copy-files-to-build-dir"/>
     <!--<antcall target="create-settings-php"/>
     <antcall target="copy-ping-php"/> 
-    <antcall target="keep-set-amount-builds"/>-->
-    <antcall target="transfer-build"/>
+    <antcall target="keep-set-amount-builds"/>
+    <antcall target="transfer-build"/>-->
  <!--   <antcall target="create-files-dir-symlink"/>
     <antcall target="set-permissions"/>
     <antcall target="create-current-symlink"/>
@@ -90,7 +90,7 @@
  
   <!-- Transfers the build to the specified environment. -->
   <target name="transfer-build" description="SCPs the build to the remote hosting server.">
-    <scp remoteTodir="${ssh.user}@10.80.35.76:${web.root}/${BUILD_ID}" trust="${ssh.trust}" sftp="true" password="${ssh.password}">
+    <scp remoteTodir="${ssh.user}@${host.ip}:${web.root}/${BUILD_ID}" trust="${ssh.trust}" sftp="true" password="${ssh.password}">
       <fileset dir="${WORKSPACE}/build">
         <include name="**/*"/>
       </fileset>
