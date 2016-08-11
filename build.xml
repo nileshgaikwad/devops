@@ -90,7 +90,7 @@
  
   <!-- Transfers the build to the specified environment. -->
   <target name="transfer-build" description="SCPs the build to the remote hosting server.">
-    <scp remoteTodir="${ssh.user}@${host.ip}:${web.root}/${BUILD_ID}" trust="${ssh.trust}" sftp="true" passphrase="${ssh.passphrase}">
+    <scp remoteTodir="${ssh.user}@${host.ip}:${web.root}/${BUILD_ID}" trust="${ssh.trust}" sftp="true" password="${ssh.password}">
       <fileset dir="${WORKSPACE}/build">
         <include name="**/*"/>
       </fileset>
