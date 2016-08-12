@@ -46,6 +46,7 @@
     <antcall target="phplint"/>
     <antcall target="create-build-dir"/>
     <antcall target="copy-files-to-build-dir"/>
+    <antcall target="drush-simpletest-run"/>
     <!--<antcall target="create-settings-php"/>
     <antcall target="copy-ping-php"/> 
     <antcall target="keep-set-amount-builds"/>
@@ -57,7 +58,7 @@
     <antcall target="drush-update-database"/>
     <antcall target="drush-schema-compare"/>
     <antcall target="drush-features-revert"/>
-    <antcall target="drush-simpletest-run"/>
+    
     <antcall target="drush-status"/>-->
   </target>
 
