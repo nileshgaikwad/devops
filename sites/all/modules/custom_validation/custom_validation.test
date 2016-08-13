@@ -62,5 +62,4 @@ class CustomValidationTestcase extends DrupalWebTestCase {
     $this->drupalPost('user/register', $edit, t('Create new account'));
     $this->assertText(t('Please enter valid mobile number. 
       (Numeric and 10 digits accepted.)'), '10 digits accepted');
-  } 
-} 
+}  
