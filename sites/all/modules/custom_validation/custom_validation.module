@@ -1,0 +1,44 @@
+<?php 
+
+function custom_validation_form_alter(&$form, &$form_state) {
+  if($form['#form_id'] == 'user_register_form') {
+    $form['field_first_name'] = array(
+      '#type'=>'textfield',
+      '#title' => t('First name'),
+      '#required' => TRUE,
+    );
+    $form['field_last_name'] = array(
+      '#type'=>'textfield',
+      '#title' => t('Last name'),
+      '#required' => TRUE,
+    );
+    $form['field_mobile_number'] = array(
+      '#type'=>'textfield',
+      '#title' => t('Mobile number'),
+      '#required' => TRUE,
+    );
+    $form['#validate'][] = '_custom_validation_validate'; 
+  }  
+}
+
+function _custom_validation_validate($form, $form_state) { 
+  if($form['#form_id'] == 'user_register_form') { 
+    $firstname = $form_state['values']['field_first_name'];
+    $lastname  = $form_state['values']['field_last_name'];
+    $mobilenumber = $form_state['values']['field_mobile_number']; 
+    
+    //First name should not contain special characters
+    if (!empty($firstname) && !preg_match('/^[a-zA-Z]{3,15}$/', $firstname)) {
+      form_set_error('field_first_name', 'Please enter only characters for first name.');
+    }
+    //lastname should not contain special characters 
+    if (!empty($lastname) && !preg_match('/^[a-zA-Z]{3,15}$/', $lastname)) {
+      form_set_error('field_last_name', 'Please enter only characters for last name.');
+    }
+    //mobile number should be in at least 10 digit and should be numeric without special characters
+    if (!empty($mobilenumber) && !preg_match('/^[0-9]{10}$/', $mobilenumber)) {
+      form_set_error('field_mobile_number', 'Please enter valid mobile number. 
+      (Numeric and 10 digits accepted.)');
+    } 
+  }  
+}
