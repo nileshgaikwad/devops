@@ -12,15 +12,7 @@ class CustomValidationTestcase extends DrupalWebTestCase {
   }
   
   function testRegistrationFields() {
-    $this->drupalGet('user/register');
-    $edit = array();
-    $edit['name'] = $name = $this->randomName();
-    $edit['mail'] = $mail = $edit['name'] . '@example.com'; 
-    $edit['field_first_name'] = $field_first_name = ''; 
-    $edit['field_last_name'] = $field_first_name = 'ABCDE'; 
-    $edit['field_mobile_number'] = $field_mobile_number = '9881744090'; 
-    $this->drupalPost('user/register', $edit, t('Create new account'));
-    $this->assertText(t('First name field is required.'), 'Mandatory fields put blank.');
+    $this->drupalGet('user/register'); 
     
     $edit = array();
     $this->drupalGet('user/register');
@@ -49,8 +41,7 @@ class CustomValidationTestcase extends DrupalWebTestCase {
     $edit['field_first_name'] = $field_first_name = 'Abcdedf'; 
     $edit['field_last_name'] = $field_first_name = 'Xysesdres'; 
     $edit['field_mobile_number'] = $field_mobile_number = '9881744090'; 
-    $this->drupalPost('user/register', $edit, t('Create new account'));
-    $this->assertText(t('Valid entries for last name'), 'valid entries for second name');
+    $this->drupalPost('user/register', $edit, t('Create new account')); 
 
     $edit = array();
     $this->drupalGet('user/register');
