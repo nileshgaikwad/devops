@@ -30,11 +30,8 @@ class CustomValidationTestcase extends DrupalWebTestCase {
     $edit['field_last_name'] = $field_first_name = 'ABCDE'; 
     $edit['field_mobile_number'] = $field_mobile_number = '9881744090'; 
     $this->drupalPost('user/register', $edit, t('Create new account'));
-    $this->assertText(t('Please enter only characters for first name.'), 'Alphanumeric not allowed'); 
+    $this->assertText(t('Please enter only characters for first name.'), 'Alphanumeric not allowed');  
     
-    $var = $this->doAwesomeStuff($settings);
-    $this->pass(var_export($var, TRUE));
- 
     $edit = array();
     $this->drupalGet('user/register');
     $edit['name'] = $name = $this->randomName();
