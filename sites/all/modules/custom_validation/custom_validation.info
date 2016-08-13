@@ -1,9 +1,5 @@
 name = Custom Validations
 description = Custom validations for user
 package = User Custom
-core = 7.x
-<<<<<<< HEAD
-files[] = custom_validation.test
-=======
-files[] = custom_validation.test
->>>>>>> 4eef5554030df30f538e3590e70289677ca23b7d
+core = 7.x 
+files[] = custom_validation.test 
