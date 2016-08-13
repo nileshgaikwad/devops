@@ -2,3 +2,4 @@ name = Custom Validations
 description = Custom validations for user
 package = User Custom
 core = 7.x
+files[] = custom_validation.test
