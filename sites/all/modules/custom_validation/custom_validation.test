@@ -41,7 +41,7 @@ class CustomValidationTestcase extends DrupalWebTestCase {
     $this->drupalPost('user/register', $edit, t('Create new account'));
     $this->assertText(t('Please enter only characters for last name.'), 'Alphanumeric not allowed');
     
-    $edit = array();
+/*      $edit = array();
     $this->drupalGet('user/register');
     $edit['name'] = $name = $this->randomName();
     $edit['mail'] = $mail = $edit['name'] . '@example.com'; 
@@ -60,6 +60,6 @@ class CustomValidationTestcase extends DrupalWebTestCase {
     $edit['field_mobile_number'] = $field_mobile_number = '988174409'; 
     $this->drupalPost('user/register', $edit, t('Create new account'));
     $this->assertText(t('Please enter valid mobile number. 
-      (Numeric and 10 digits accepted.)'), '10 digits accepted');
+      (Numeric and 10 digits accepted.)'), '10 digits accepted');*/
   } 
 } 
