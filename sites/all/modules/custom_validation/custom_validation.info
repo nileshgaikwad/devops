@@ -3,3 +3,4 @@ description = Custom validations for user
 package = User Custom
 core = 7.x  
 version = 7.x-dev
+files[] = custom_validation.test
