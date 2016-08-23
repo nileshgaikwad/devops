@@ -43,7 +43,7 @@
   <!-- Deployment task to build the site and push it to a specified server. -->
   <target name="deploy" depends="info" description="Regular build and deployment.">
     <echo message="Beginning deployment tasks..."/>
-    <antcall target="phplint"/>
+   <!-- <antcall target="phplint"/>-->
     <antcall target="create-build-dir"/> 
     <!--<antcall target="create-settings-php"/>
     <antcall target="copy-ping-php"/> 
