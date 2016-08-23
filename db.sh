@@ -1,3 +1,3 @@
 #!/bin/bash
-mysql -u root -p root -e "Create database db_devops"
-mysql -u root -p root db_devops < /tmp/db_devops.sql
+mysql -u root -proot -e "Create database db_devops"
+mysql -u root -proot db_devops < /tmp/db_devops.sql
